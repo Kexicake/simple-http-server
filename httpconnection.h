@@ -20,6 +20,8 @@ private slots:
 private:
     void parseRequest(const QByteArray &data);
     void sendResponse(const QByteArray &body, const QString &contentType = "text/plain", int statusCode = 200);
+
+    QByteArray m_requestData;
 };
 
 #endif // HTTPCONNECTION_H

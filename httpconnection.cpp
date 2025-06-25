@@ -9,14 +9,25 @@ HttpConnection::HttpConnection(QObject *parent) : QTcpSocket(parent)
 
 void HttpConnection::onReadyRead()
 {
-    QByteArray data = readAll();
-    parseRequest(data);
+    m_requestData.append(readAll());
+
+    if (m_requestData.contains("\r\n\r\n")){
+        parseRequest(m_requestData);
+        m_requestData.clear();
+    }
 }
 
 void HttpConnection::parseRequest(const QByteArray &data)
 {
 
+
     QString requestStr = QString::fromUtf8(data);
+    QStringList parts = requestStr.split("\r\n\r\n");
+    QString headerPart = parts.value(0);
+    QString body = parts.value(1);
+
+    QStringList headers = headerPart.split("\r\n");
+    QStringList requestLine = headers.takeFirst().split(' ');
     QStringList lines = requestStr.split("\r\n");
     if (lines.isEmpty()) return;
 
@@ -34,7 +45,13 @@ void HttpConnection::parseRequest(const QByteArray &data)
         path = path.left(queryPos);
     }
 
-    if(path == "/"){
+
+    if (path == "/post" && method == "POST"){
+        sendResponse(("Post: " + body).toUtf8());
+    }
+
+
+    if (path == "/"){
         sendResponse("Test pass, response sended!");
     } else if (path == "/echo"){
         QString echoText = query.queryItemValue("text");

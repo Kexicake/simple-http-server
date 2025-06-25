@@ -27,3 +27,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     httpconnection.h \
     httpserver.h
+
+DISTFILES += \
+    www/index.html \
+    www/style.css

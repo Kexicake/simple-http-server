@@ -1,5 +1,8 @@
 #include "httpconnection.h"
 #include <QDateTime>
+#include <QFile>
+
+#define DEBUG
 
 HttpConnection::HttpConnection(QObject *parent) : QTcpSocket(parent)
 {
@@ -19,19 +22,15 @@ void HttpConnection::onReadyRead()
 
 void HttpConnection::parseRequest(const QByteArray &data)
 {
-
-
     QString requestStr = QString::fromUtf8(data);
+
     QStringList parts = requestStr.split("\r\n\r\n");
+
     QString headerPart = parts.value(0);
     QString body = parts.value(1);
 
     QStringList headers = headerPart.split("\r\n");
-    QStringList requestLine = headers.takeFirst().split(' ');
-    QStringList lines = requestStr.split("\r\n");
-    if (lines.isEmpty()) return;
-
-    QStringList requestList = lines.takeFirst().split(' ');
+    QStringList requestList = headers.takeFirst().split(' ');
     if (requestList.size() < 2) return;
 
     QString method = requestList[0];
@@ -45,14 +44,14 @@ void HttpConnection::parseRequest(const QByteArray &data)
         path = path.left(queryPos);
     }
 
-
+    // POST
     if (path == "/post" && method == "POST"){
         sendResponse(("Post: " + body).toUtf8());
     }
 
-
+    //GET
     if (path == "/"){
-        sendResponse("Test pass, response sended!");
+        //sendResponse("Test pass, response sended!");
     } else if (path == "/echo"){
         QString echoText = query.queryItemValue("text");
         if (echoText.isEmpty()) echoText = "NO TEXT PROVIDED";
@@ -63,6 +62,29 @@ void HttpConnection::parseRequest(const QByteArray &data)
         sendResponse(QDateTime::currentDateTimeUtc().toString().toUtf8());
     } else {
         sendResponse("404 Not Found", "text/plain", 404);
+    }
+
+    //Статичные файлы на сервер
+    QString filepath = "www" + path;
+    #ifdef DEBUG
+        filepath = "/home/kexicake/projects/simple-http-server/www" + path;
+    #endif
+
+    if (filepath.endsWith('/')) filepath += "index.html";
+
+    QFile file(filepath);
+
+    if (file.exists() && file.open(QIODevice::ReadOnly)){
+        QByteArray content = file.readAll();
+        file.close();
+
+        QString contentType = "text/plain";
+        if (filepath.endsWith(".html")) contentType = "text/html";
+        if (filepath.endsWith(".css")) contentType = "text/css";
+        if (filepath.endsWith(".js")) contentType = "text/javascript";
+
+        sendResponse(content, contentType);
+        return;
     }
 }
 

@@ -26,17 +26,27 @@ void HttpConnection::parseRequest(const QByteArray &data)
     QString method = requestList[0];
     QString path = requestList[1];
 
+    QUrlQuery query;
+
+    int queryPos = path.indexOf('?');
+    if (queryPos != -1){
+        query.setQuery(path.mid(queryPos + 1));
+        path = path.left(queryPos);
+    }
+
     if(path == "/"){
         sendResponse("Test pass, response sended!");
+    } else if (path == "/echo"){
+        QString echoText = query.queryItemValue("text");
+        if (echoText.isEmpty()) echoText = "NO TEXT PROVIDED";
+
+        sendResponse(echoText.toUtf8());
     } else if (path == "/time"){
         //qInfo() << QDateTime::currentDateTimeUtc().toString();
         sendResponse(QDateTime::currentDateTimeUtc().toString().toUtf8());
     } else {
         sendResponse("404 Not Found", "text/plain", 404);
     }
-
-
-
 }
 
 void HttpConnection::sendResponse(const QByteArray &body, const QString &contentType, int statusCode)

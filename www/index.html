@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Основная страница</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple HTTP Server</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Привет мир!</h1>
-    <p>Я РОДИЛСЯ</p>
+    <div class="container">
+        <h1>Добро пожаловать!</h1>
+        <div class="sections">
+            <section>
+                <h2>Тест базы данных</h2>
+                <button id="getUsers">Получить пользователей</button>
+                <div id="usersResult"></div>
+            </section>
+        </div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>

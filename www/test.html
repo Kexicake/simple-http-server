@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>Тест API</h2>
+  <button onclick="getUsers()">Получить пользователей</button>
+  <button onclick="createUser()">Создать пользователя</button>
+
+  <script>
+    function getUsers() {
+      fetch('http://localhost:8080/api/db/users', {
+        headers: {
+          'Authorization': 'Basic ' + btoa('admin:admin123')
+        }
+      })
+      .then(response => response.json())
+      .then(data => console.log(data));
+    }
+
+    function createUser() {
+      fetch('http://localhost:8080/api/db/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa('admin:admin123'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: 'testuser',
+          password: 'testpass',
+          email: 'test@example.com'
+        })
+      })
+      .then(response => response.json())
+      .then(data => console.log(data));
+    }
+  </script>
+</body>
+</html>

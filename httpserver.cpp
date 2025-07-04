@@ -14,18 +14,33 @@
 #include <QtCore/QString>
 
 HttpServer::HttpServer(QObject *parent) : QTcpServer(parent),
-    m_settings(new QSettings("http_server.ini", QSettings::IniFormat))
+    m_settings(new QSettings("/home/kexicake/projects/simple-http-server/http_server.ini", QSettings::IniFormat)),
+    m_documentRoot("/home/kexicake/projects/simple-http-server/www"),
+    m_phpCgiPath("/usr/bin/php-cgi"),
+    m_authEnabled(true)
 {
-    // Загрузка конфигурации
-    setDocumentRoot(m_settings->value("server/document_root", QCoreApplication::applicationDirPath() + "/www").toString());
-    setPhpCgiPath(m_settings->value("php/cgi_path", "/usr/bin/php-cgi").toString());
+    // Проверка доступности файла конфига
+    if (!QFile::exists(m_settings->fileName())) {
+        qWarning() << "Config file not found:" << m_settings->fileName();
+        // Создаем файл с дефолтными значениями
+        m_settings->setValue("server/document_root", m_documentRoot);
+        m_settings->setValue("php/cgi_path", m_phpCgiPath);
+        m_settings->setValue("auth/enabled", m_authEnabled);
+        m_settings->setValue("database/connection_string",
+                           "dbname=simple_http_db user=postgres password=postgres host=localhost port=5432");
+        m_settings->sync();
+    }
+
+    // Теперь загружаем настройки
+    setDocumentRoot(m_settings->value("server/document_root", m_documentRoot).toString());
+    setPhpCgiPath(m_settings->value("php/cgi_path", m_phpCgiPath).toString());
+    m_authEnabled = m_settings->value("auth/enabled", true).toBool();
 
     // Настройка БД
     QString dbConnStr = m_settings->value("database/connection_string",
         "dbname=simple_http_db user=postgres password=postgres host=localhost port=5432").toString();
     configureDatabase(dbConnStr);
 }
-
 HttpServer::~HttpServer()
 {
     stopServer();
@@ -40,7 +55,10 @@ bool HttpServer::startServer(quint16 port)
     }
 
     qInfo() << "Server started on port" << port;
+    qInfo() << "Server dir:" << QCoreApplication::applicationDirPath();
     qInfo() << "Document root:" << m_documentRoot;
+    qInfo() << "PHP CHI root:" << m_phpCgiPath;
+    qDebug() << "Config file location:" << m_settings->fileName();
     return true;
 }
 
@@ -54,13 +72,13 @@ void HttpServer::stopServer()
 
 void HttpServer::setDocumentRoot(const QString &path)
 {
-    m_phpCgiPath = path;
-    m_settings->setValue("php/cgi_path", m_phpCgiPath);
+    m_documentRoot = path + "/www";
+    m_settings->setValue("server/document_root", path);
 }
 
 void HttpServer::setPhpCgiPath(const QString &path)
 {
-    m_phpCgiPath = "/usr/bin/php-cgi";
+    m_phpCgiPath = path;  // Используем переданный параметр
     m_settings->setValue("php/cgi_path", m_phpCgiPath);
 }
 
@@ -207,6 +225,7 @@ QByteArray HttpServer::processRequest(const QString &method, const QString &path
 
     // Проверка существования файла
     if (!fileInfo.exists()) {
+        qDebug() << "Method:" << method << "\n" << "Filepath:" << filePath << " Not Found";
         return createErrorResponse(404, "Not Found");
     }
 
@@ -619,18 +638,20 @@ QByteArray HttpServer::createErrorResponse(int code, const QString &message)
 
     return response;
 }
-
 bool HttpServer::checkAuthentication(const QMap<QString, QString> &headers)
 {
     QString authHeader = headers.value("authorization");
     if (!authHeader.startsWith("Basic ")) {
+        qDebug() << "Invalid auth header format";
         return false;
     }
 
     QByteArray authData = QByteArray::fromBase64(authHeader.mid(6).toUtf8());
     QString authStr = QString::fromUtf8(authData);
     QStringList parts = authStr.split(':');
+
     if (parts.size() != 2) {
+        qDebug() << "Invalid auth data format";
         return false;
     }
 
@@ -638,9 +659,62 @@ bool HttpServer::checkAuthentication(const QMap<QString, QString> &headers)
     QString password = parts[1];
 
     // Проверка учетных данных
-    QString storedUser = m_settings->value("auth/username", "admin").toString();
-    QString storedPass = m_settings->value("auth/password", "admin").toString();
+    if (!m_dbConnection) {
+        qWarning() << "Database connection not available for auth";
+        return false;
+    }
 
-    return (username == storedUser && password == storedPass);
+    try {
+        pqxx::work txn(*m_dbConnection);
+        std::string query = "SELECT password FROM users WHERE username = " +
+                          txn.quote(username.toStdString());
+
+        pqxx::result res = txn.exec(query);
+
+        if (res.empty()) {
+            qDebug() << "User not found:" << username;
+            return false;
+        }
+
+        std::string dbPassword = res[0][0].as<std::string>();
+        bool authenticated = (password == QString::fromStdString(dbPassword));
+
+        if (!authenticated) {
+            qDebug() << "Invalid password for user:" << username;
+        }
+
+        return authenticated;
+
+    } catch (const std::exception &e) {
+        qWarning() << "Auth error:" << e.what();
+        return false;
+    }
+}
+
+bool HttpServer::validateCredentials(const QString &username, const QString &password)
+{
+    if (!m_dbConnection) {
+        qWarning() << "Database not connected for auth validation";
+        return false;
+    }
+
+    try {
+        pqxx::work txn(*m_dbConnection);
+        std::string query = "SELECT password FROM users WHERE username = " +
+                          txn.quote(username.toStdString());
+
+        pqxx::result res = txn.exec(query);
+
+        if (res.empty()) {
+            return false; // Пользователь не найден
+        }
+
+        std::string dbPassword = res[0][0].as<std::string>();
+        return (password == QString::fromStdString(dbPassword));
+
+    } catch (const std::exception &e) {
+        qWarning() << "Auth validation error:" << e.what();
+        return false;
+    }
 }
 

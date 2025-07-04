@@ -36,4 +36,5 @@ DISTFILES += \
     www/api_example.php \
     www/index.html \
     www/script.js \
-    www/style.css
+    www/style.css \
+    www/test.html

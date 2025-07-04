@@ -37,9 +37,10 @@ protected:
     void incomingConnection(qintptr socketDescriptor) override;
 
 private:
-    QString m_documentRoot = "/home/kexicake/projects/simple-http-server/www";
-    QString m_phpCgiPath = "/usr/bin/php-cgi";
     QSettings *m_settings;
+    QString m_documentRoot;
+    QString m_phpCgiPath;
+    bool m_authEnabled;
 
     // БД
     QString m_dbConnectionStr;
@@ -59,7 +60,9 @@ private:
     QByteArray createJsonResponse(const QJsonObject &json);
     QString jsonToString(const QJsonObject &jsonBody);
     QByteArray createErrorResponse(int code, const QString &message);
-    bool checkAuthentication(const QMap<QString, QString> &headers);
+    bool checkAuthentication(const QMap<QString, QString> &headers);;
+    bool validateCredentials(const QString &username, const QString &password);
+    QByteArray createUnauthorizedResponse();
 };
 
 #endif // HTTPSERVER_H

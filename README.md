@@ -38,9 +38,14 @@ API для работы с БД:
     AUTH=$(echo -n "admin:admin123" | base64)
 
 Пример запроса:
+
     curl -X GET "http://localhost:8080/api/db/users" \
          -H "Authorization: Basic $AUTH"
+         
+    curl -v -X POST "http://localhost:8080/api/db/users" -H "Content-Type: application/json" -d '{"username": "John", "email": "john@example.com", "password": "123"}'
 
+    curl -X GET "http://localhost:8080/api/db/users?email=admin@example.com"
+    
     GET /api/db/table_name?param1=value1&param2=value2 - получить отфильтрованные записи http://localhost:8080/api/db/users?username=admin
 
     POST /api/db/table_name - добавить новую запись (параметры в теле запроса)

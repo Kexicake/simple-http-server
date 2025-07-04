@@ -29,7 +29,10 @@ public:
     void configureDatabase(const QString &connStr);
 
     // API
-    QByteArray handleDbRequest(const QString &table, const QMap<QString, QString> &params, const QString &method);
+    QByteArray handleDbSelect(const QString &table, const QMap<QString, QString> &params);
+    QByteArray handleDbInsert(const QString &table, const QMap<QString, QString> &params);
+    QByteArray handleDbUpdate(const QString &table, const QMap<QString, QString> &params);
+    QByteArray handleDbDelete(const QString &table, const QMap<QString, QString> &params);
 protected:
     void incomingConnection(qintptr socketDescriptor) override;
 
@@ -46,11 +49,15 @@ private:
     QByteArray processRequest(const QString &method, const QString &path, const QMap<QString, QString> &headers, const QByteArray &body);
     QByteArray serveStaticFile(const QString &filePath);
     QByteArray executePhpScript(const QString &scriptPath, const QMap<QString, QString> &params, const QByteArray &postData);
-    QByteArray serveApi(const QString &apiPath, const QMap<QString, QString> &params, const QByteArray &postData);
+    QByteArray serveApi(const QString &apiPath, const QString &method,
+                       const QMap<QString, QString> &params,
+                       const QJsonObject &jsonBody);
 
     // Вспомогательные методы
     QMap<QString, QString> parseQueryParams(const QString &query);
+    QMap<QString, QString> parseFormUrlEncoded(const QByteArray &data);
     QByteArray createJsonResponse(const QJsonObject &json);
+    QString jsonToString(const QJsonObject &jsonBody);
     QByteArray createErrorResponse(int code, const QString &message);
     bool checkAuthentication(const QMap<QString, QString> &headers);
 };

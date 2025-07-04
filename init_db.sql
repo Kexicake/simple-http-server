@@ -1,5 +1,7 @@
 -- sudo -u postgres psql -f init_db.sql
 -- sudo chmod o+rx /home
+-- sudo -u postgres psql
+-- \password postgres
 -- Создаем базу данных (если не существует)
 CREATE DATABASE simple_http_db;
 

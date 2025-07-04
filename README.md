@@ -30,7 +30,7 @@ PHP-CGI (для выполнения PHP скриптов)
 API для работы с БД:
 
     GET /api/db/table_name - получить все записи из таблицы /api/db/users
-
+    echo -n "admin:admin123" | base64
     GET /api/db/table_name?param1=value1&param2=value2 - получить отфильтрованные записи http://localhost:8080/api/db/users?username=admin
 
     POST /api/db/table_name - добавить новую запись (параметры в теле запроса)

@@ -17,14 +17,6 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица сообщений для RabbitMQ
-CREATE TABLE rabbit_messages (
-    id SERIAL PRIMARY KEY,
-    queue_name VARCHAR(100) NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Тестовые данные
 INSERT INTO users (username, password, email) VALUES
 ('admin', 'admin123', 'admin@example.com'),
